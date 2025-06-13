@@ -1,11 +1,10 @@
 #include <iostream>
 #include <fstream>
+#include <string>  // Usado na classe GerenciadorDeAtletas
 #include <cstring> // Para strcmp, strncpy, etc.
-#include <cstdio>  // Para remove, rename, arquivos C-style
+#include <cstdio>  // Para remove, rename
 #include <cstdlib> // Para exit, malloc, free
 #include <limits>  // Para numeric_limits
-
-using namespace std;
 
 // --- ESTRUTURAS DE DADOS ---
 
@@ -17,9 +16,8 @@ struct Registro {
     char games[150];
     int year;
     char season[20];
-    bool removido;
 
-    Registro() : id(0), year(0), removido(false) {
+    Registro() : id(0), year(0) {
         name[0] = '\0';
         team[0] = '\0';
         games[0] = '\0';
@@ -33,43 +31,61 @@ struct HeapItem {
     int origem; // Índice do arquivo de bloco de onde o registro veio.
 };
 
-// --- PROTÓTIPOS DAS FUNÇÕES ---
+// Estrutura para o Min-Heap (implementação manual)
+struct MinHeap {
+    HeapItem* harr;
+    int capacidade;
+    int tamanho;
+};
 
-// Funções do menu e operações em arquivo
+
+// --- CLASSE PRINCIPAL PARA GERENCIAMENTO DO ARQUIVO ---
+
+class GerenciadorDeAtletas {
+private:
+    std::string caminhoArquivoBin;
+
+    // Métodos auxiliares privados para manipulação de baixo nível
+    void lerRegistro(std::fstream& arquivo, Registro& reg, long pos);
+    void escreverRegistro(std::fstream& arquivo, const Registro& reg, long pos);
+    int contarRegistros();
+
+public:
+    // Construtor
+    GerenciadorDeAtletas(const std::string& caminho);
+
+    // Métodos públicos para as operações do menu
+    void converterCSVparaBinario(const std::string& caminhoCSV);
+    void inserirRegistro();
+    void visualizarRegistros();
+    void alterarRegistro();
+    void trocarRegistros();
+    void imprimirTodos();
+    void mergeSortExterno();
+};
+
+
+// --- PROTÓTIPOS DAS FUNÇÕES AUXILIARES E ALGORITMOS ---
+
+// Menu
 void menuPrincipal();
-void converterCSVparaBinario(const char* csvPath, const char* binPath);
-void inserirRegistro(const char* binPath);
-void visualizarRegistros(const char* binPath);
-void alterarRegistro(const char* binPath);
-void trocarRegistros(const char* binPath);
-void imprimirTodos(const char* binPath);
 
-// Funções de manipulação de arquivo (baixo nível)
-void lerRegistro(fstream& arquivo, Registro& reg, long pos);
-void escreverRegistro(fstream& arquivo, const Registro& reg, long pos);
-int contarRegistros(const char* binPath);
+// Parser de CSV (agora com while)
+void parseCSVLineManual(char* linha, char campos[6][200]);
 
-// --- ALGORITMOS IMPLEMENTADOS MANUALMENTE ---
-
-// 1. Quicksort para ordenar os blocos em memória
+// Algoritmos implementados manualmente
+// 1. Quicksort
 void trocar(Registro* a, Registro* b);
 int particionar(Registro arr[], int baixo, int alto);
 void quicksort(Registro arr[], int baixo, int alto);
 
-// 2. Min-Heap para a intercalação dos blocos
-struct MinHeap {
-    HeapItem* harr; // Ponteiro para o array de elementos no heap
-    int capacidade; // Capacidade máxima do min-heap
-    int tamanho;    // Tamanho atual do min-heap
-};
+// 2. Min-Heap
 MinHeap* criarMinHeap(int capacidade);
 void minHeapify(MinHeap* minHeap, int idx);
 HeapItem extrairMin(MinHeap* minHeap);
 void inserirMinHeap(MinHeap* minHeap, HeapItem item);
 void destruirMinHeap(MinHeap* minHeap);
 
-// 3. Ordenação Externa (Merge Sort)
-void mergeSortExterno(const char* binPath);
 
 // --- FUNÇÃO PRINCIPAL ---
 
@@ -79,48 +95,352 @@ int main() {
 }
 
 void menuPrincipal() {
-    const char* csvPath = "dados.csv";
-    const char* binPath = "dados.bin";
+    // Objeto que gerencia todas as operações no arquivo binário
+    GerenciadorDeAtletas gerenciador("dados.bin");
+    const std::string csvPath = "dados.csv";
     int opcao;
 
     do {
-        cout << "\n--- Menu de Operacoes \n";
-        cout << "1. Converter CSV para Binario\n";
-        cout << "2. Inserir um registro em uma posicao\n";
-        cout << "3. Visualizar registros em um intervalo\n";
-        cout << "4. Alterar um registro em uma posicao\n";
-        cout << "5. Trocar dois registros de posicao\n";
-        cout << "6. Imprimir todos os registros\n";
-        cout << "7. Ordenar arquivo por ID (Merge Sort Externo)\n";
-        cout << "0. Sair\n";
-        cout << "Escolha uma opcao: ";
-        cin >> opcao;
+        std::cout << "\n--- Menu de Operacoes ---\n";
+        std::cout << "1. Converter CSV para Binario\n";
+        std::cout << "2. Inserir um registro em uma posicao\n";
+        std::cout << "3. Visualizar registros em um intervalo\n";
+        std::cout << "4. Alterar um registro em uma posicao\n";
+        std::cout << "5. Trocar dois registros de posicao\n";
+        std::cout << "6. Imprimir todos os registros\n";
+        std::cout << "7. Ordenar arquivo por ID (Merge Sort Externo)\n";
+        std::cout << "0. Sair\n";
+        std::cout << "Escolha uma opcao: ";
+        std::cin >> opcao;
 
-        while (cin.fail()) {
-            cout << "Entrada invalida. Por favor, insira um numero." << endl;
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Escolha uma opcao: ";
-            cin >> opcao;
+        while (std::cin.fail()) {
+            std::cout << "Entrada invalida. Por favor, insira um numero." << std::endl;
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "Escolha uma opcao: ";
+            std::cin >> opcao;
         }
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Limpa o buffer de entrada
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
         switch (opcao) {
-            case 1: converterCSVparaBinario(csvPath, binPath); break;
-            case 2: inserirRegistro(binPath); break;
-            case 3: visualizarRegistros(binPath); break;
-            case 4: alterarRegistro(binPath); break;
-            case 5: trocarRegistros(binPath); break;
-            case 6: imprimirTodos(binPath); break;
-            case 7: mergeSortExterno(binPath); break;
-            case 0: cout << "Saindo do programa..." << endl; break;
-            default: cout << "Opcao invalida! Tente novamente." << endl; break;
+            case 1: gerenciador.converterCSVparaBinario(csvPath); break;
+            case 2: gerenciador.inserirRegistro(); break;
+            case 3: gerenciador.visualizarRegistros(); break;
+            case 4: gerenciador.alterarRegistro(); break;
+            case 5: gerenciador.trocarRegistros(); break;
+            case 6: gerenciador.imprimirTodos(); break;
+            case 7: gerenciador.mergeSortExterno(); break;
+            case 0: std::cout << "Saindo do programa..." << std::endl; break;
+            default: std::cout << "Opcao invalida! Tente novamente." << std::endl; break;
         }
     } while (opcao != 0);
 }
 
-// --- IMPLEMENTAÇÃO DO QUICKSORT ---
+// --- IMPLEMENTAÇÃO DOS MÉTODOS DA CLASSE GerenciadorDeAtletas ---
 
+GerenciadorDeAtletas::GerenciadorDeAtletas(const std::string& caminho) {
+    this->caminhoArquivoBin = caminho;
+}
+
+void GerenciadorDeAtletas::lerRegistro(std::fstream& arquivo, Registro& reg, long pos) {
+    arquivo.seekg(pos * sizeof(Registro));
+    arquivo.read(reinterpret_cast<char*>(&reg), sizeof(Registro));
+}
+
+void GerenciadorDeAtletas::escreverRegistro(std::fstream& arquivo, const Registro& reg, long pos) {
+    arquivo.seekp(pos * sizeof(Registro));
+    arquivo.write(reinterpret_cast<const char*>(&reg), sizeof(Registro));
+}
+
+int GerenciadorDeAtletas::contarRegistros() {
+    std::ifstream arquivo(this->caminhoArquivoBin, std::ios::binary | std::ios::ate);
+    if (!arquivo.is_open()) return 0;
+    return arquivo.tellg() / sizeof(Registro);
+}
+
+void GerenciadorDeAtletas::converterCSVparaBinario(const std::string& caminhoCSV) {
+    FILE* csv = fopen(caminhoCSV.c_str(), "r");
+    if (!csv) {
+        std::cerr << "Erro: Nao foi possivel abrir o arquivo CSV '" << caminhoCSV << "'" << std::endl;
+        return;
+    }
+
+    std::ofstream bin(this->caminhoArquivoBin, std::ios::binary);
+    if (!bin.is_open()) {
+        std::cerr << "Erro: Nao foi possivel criar o arquivo binario '" << this->caminhoArquivoBin << "'" << std::endl;
+        fclose(csv);
+        return;
+    }
+
+    char linha[1024];
+    fgets(linha, sizeof(linha), csv); // Ignora cabeçalho
+
+    while (fgets(linha, sizeof(linha), csv)) {
+        linha[strcspn(linha, "\r\n")] = 0; // Remove quebra de linha
+
+        char campos[6][200] = {0};
+        parseCSVLineManual(linha, campos);
+        
+        Registro reg;
+        if(strlen(campos[0]) > 0) reg.id = atoi(campos[0]); else reg.id = 0;
+        strncpy(reg.name, campos[1], sizeof(reg.name) - 1);
+        strncpy(reg.team, campos[2], sizeof(reg.team) - 1);
+        strncpy(reg.games, campos[3], sizeof(reg.games) - 1);
+        if(strlen(campos[4]) > 0) reg.year = atoi(campos[4]); else reg.year = 0;
+        strncpy(reg.season, campos[5], sizeof(reg.season) - 1);
+        
+        bin.write(reinterpret_cast<const char*>(&reg), sizeof(Registro));
+    }
+
+    fclose(csv);
+    bin.close();
+    std::cout << "=> Conversao concluida com sucesso!" << std::endl;
+}
+
+void GerenciadorDeAtletas::imprimirTodos() {
+    std::fstream bin(this->caminhoArquivoBin, std::ios::binary | std::ios::in);
+    if (!bin.is_open()) {
+        std::cerr << "Erro ao abrir arquivo binario!" << std::endl;
+        return;
+    }
+    int total = contarRegistros();
+    if (total == 0) {
+        std::cout << "Arquivo vazio." << std::endl;
+        return;
+    }
+    
+    std::cout << "\n--- Imprimindo todos os registros ---\n";
+    for (int i = 0; i < total; i++) {
+        Registro reg;
+        lerRegistro(bin, reg, i);
+        std::cout << "[" << i << "] ID: " << reg.id 
+             << ", Nome: " << reg.name
+             << ", Equipe: " << reg.team
+             << ", Ano: " << reg.year << std::endl;
+    }
+}
+
+void GerenciadorDeAtletas::inserirRegistro() {
+    std::fstream bin(this->caminhoArquivoBin, std::ios::binary | std::ios::in | std::ios::out);
+    if (!bin.is_open()) {
+        std::cerr << "Erro ao abrir arquivo binario para insercao!" << std::endl;
+        return;
+    }
+
+    Registro novo;
+    int pos;
+    std::cout << "Digite os dados do novo registro:\n";
+    std::cout << "ID: "; std::cin >> novo.id;
+    std::cout << "Nome: "; std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); std::cin.getline(novo.name, sizeof(novo.name));
+    std::cout << "Equipe: "; std::cin.getline(novo.team, sizeof(novo.team));
+    std::cout << "Jogos: "; std::cin.getline(novo.games, sizeof(novo.games));
+    std::cout << "Ano: "; std::cin >> novo.year;
+    std::cout << "Temporada: "; std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); std::cin.getline(novo.season, sizeof(novo.season));
+    std::cout << "Posicao para inserir: "; std::cin >> pos;
+
+    int totalRegistros = contarRegistros();
+    if (pos < 0) pos = 0;
+
+    if (pos >= totalRegistros) {
+        escreverRegistro(bin, novo, totalRegistros);
+        std::cout << "Registro inserido no final do arquivo (posicao " << totalRegistros << ")." << std::endl;
+    } else {
+        Registro temp;
+        for (int i = totalRegistros - 1; i >= pos; i--) {
+            lerRegistro(bin, temp, i);
+            escreverRegistro(bin, temp, i + 1);
+        }
+        escreverRegistro(bin, novo, pos);
+        std::cout << "Registro inserido na posicao " << pos << "." << std::endl;
+    }
+}
+
+void GerenciadorDeAtletas::visualizarRegistros() {
+    int inicio, fim;
+    std::cout << "Posicao inicial: "; std::cin >> inicio;
+    std::cout << "Posicao final: "; std::cin >> fim;
+
+    std::fstream bin(this->caminhoArquivoBin, std::ios::binary | std::ios::in);
+    if (!bin.is_open()) {
+        std::cerr << "Erro ao abrir arquivo binario!" << std::endl;
+        return;
+    }
+
+    int total = contarRegistros();
+    if (inicio < 0 || fim < inicio || inicio >= total) {
+        std::cout << "Intervalo invalido." << std::endl;
+        return;
+    }
+    if (fim >= total) fim = total -1;
+
+    std::cout << "\n--- Exibindo Registros de " << inicio << " a " << fim << " ---\n";
+    for (int i = inicio; i <= fim; i++) {
+        Registro reg;
+        lerRegistro(bin, reg, i);
+        std::cout << "[" << i << "] ID: " << reg.id 
+             << ", Nome: " << reg.name
+             << ", Ano: " << reg.year << std::endl;
+    }
+}
+
+void GerenciadorDeAtletas::alterarRegistro() {
+    std::fstream bin(this->caminhoArquivoBin, std::ios::binary | std::ios::in | std::ios::out);
+    if (!bin.is_open()) {
+        std::cerr << "Erro ao abrir arquivo binario!" << std::endl;
+        return;
+    }
+
+    int pos;
+    std::cout << "Posicao do registro a ser alterado: "; std::cin >> pos;
+    
+    int total = contarRegistros();
+    if (pos < 0 || pos >= total) {
+        std::cout << "Posicao invalida." << std::endl;
+        return;
+    }
+
+    Registro reg;
+    std::cout << "Digite os novos dados:\n";
+    std::cout << "ID: "; std::cin >> reg.id;
+    std::cout << "Nome: "; std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); std::cin.getline(reg.name, sizeof(reg.name));
+    std::cout << "Equipe: "; std::cin.getline(reg.team, sizeof(reg.team));
+    std::cout << "Jogos: "; std::cin.getline(reg.games, sizeof(reg.games));
+    std::cout << "Ano: "; std::cin >> reg.year;
+    std::cout << "Temporada: "; std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); std::cin.getline(reg.season, sizeof(reg.season));
+
+    escreverRegistro(bin, reg, pos);
+    std::cout << "Registro na posicao " << pos << " alterado." << std::endl;
+}
+
+void GerenciadorDeAtletas::trocarRegistros() {
+    std::fstream bin(this->caminhoArquivoBin, std::ios::binary | std::ios::in | std::ios::out);
+    if (!bin.is_open()) {
+        std::cerr << "Erro ao abrir arquivo binario!" << std::endl;
+        return;
+    }
+
+    int pos1, pos2;
+    std::cout << "Primeira posicao: "; std::cin >> pos1;
+    std::cout << "Segunda posicao: "; std::cin >> pos2;
+    
+    int total = contarRegistros();
+    if (pos1 < 0 || pos1 >= total || pos2 < 0 || pos2 >= total) {
+        std::cout << "Uma ou ambas as posicoes sao invalidas." << std::endl;
+        return;
+    }
+
+    Registro reg1, reg2;
+    lerRegistro(bin, reg1, pos1);
+    lerRegistro(bin, reg2, pos2);
+    
+    escreverRegistro(bin, reg1, pos2);
+    escreverRegistro(bin, reg2, pos1);
+
+    std::cout << "Registros das posicoes " << pos1 << " e " << pos2 << " trocados." << std::endl;
+}
+
+void GerenciadorDeAtletas::mergeSortExterno() {
+    int totalRegistros = contarRegistros();
+    if (totalRegistros <= 1) {
+        std::cout << "Arquivo ja esta ordenado ou vazio." << std::endl;
+        return;
+    }
+
+    const int TAM_BLOCO = 5000;
+    int numBlocos = (totalRegistros + TAM_BLOCO - 1) / TAM_BLOCO;
+
+    std::cout << "Iniciando Fase 1: Criacao de " << numBlocos << " blocos ordenados..." << std::endl;
+    Registro* bloco = new Registro[TAM_BLOCO];
+    std::ifstream entrada(this->caminhoArquivoBin, std::ios::binary);
+    
+    for (int i = 0; i < numBlocos; i++) {
+        int registrosNesteBloco = std::min(TAM_BLOCO, totalRegistros - i * TAM_BLOCO);
+        entrada.read(reinterpret_cast<char*>(bloco), registrosNesteBloco * sizeof(Registro));
+
+        quicksort(bloco, 0, registrosNesteBloco - 1);
+        
+        char nomeArquivoBloco[20];
+        sprintf(nomeArquivoBloco, "bloco_%d.bin", i);
+        std::ofstream saidaBloco(nomeArquivoBloco, std::ios::binary);
+        saidaBloco.write(reinterpret_cast<const char*>(bloco), registrosNesteBloco * sizeof(Registro));
+        saidaBloco.close();
+    }
+    delete[] bloco;
+    entrada.close();
+
+    std::cout << "Iniciando Fase 2: Intercalacao dos blocos..." << std::endl;
+    std::ifstream* entradasBlocos = new std::ifstream[numBlocos];
+    for (int i = 0; i < numBlocos; i++) {
+        char nomeArquivoBloco[20];
+        sprintf(nomeArquivoBloco, "bloco_%d.bin", i);
+        entradasBlocos[i].open(nomeArquivoBloco, std::ios::binary);
+    }
+    
+    std::string nomeSaidaFinal = "ordenado_final.bin";
+    std::ofstream saidaFinal(nomeSaidaFinal, std::ios::binary);
+    MinHeap* heap = criarMinHeap(numBlocos);
+    
+    for (int i = 0; i < numBlocos; i++) {
+        HeapItem item;
+        if (entradasBlocos[i].read(reinterpret_cast<char*>(&item.registro), sizeof(Registro))) {
+            item.origem = i;
+            inserirMinHeap(heap, item);
+        }
+    }
+
+    while (heap->tamanho > 0) {
+        HeapItem minItem = extrairMin(heap);
+        saidaFinal.write(reinterpret_cast<const char*>(&minItem.registro), sizeof(Registro));
+
+        HeapItem proximoItem;
+        if (entradasBlocos[minItem.origem].read(reinterpret_cast<char*>(&proximoItem.registro), sizeof(Registro))) {
+            proximoItem.origem = minItem.origem;
+            inserirMinHeap(heap, proximoItem);
+        }
+    }
+
+    destruirMinHeap(heap);
+    saidaFinal.close();
+
+    for (int i = 0; i < numBlocos; i++) {
+        entradasBlocos[i].close();
+        char nomeArquivoBloco[20];
+        sprintf(nomeArquivoBloco, "bloco_%d.bin", i);
+        remove(nomeArquivoBloco);
+    }
+    delete[] entradasBlocos;
+
+    remove(this->caminhoArquivoBin.c_str());
+    rename(nomeSaidaFinal.c_str(), this->caminhoArquivoBin.c_str());
+    std::cout << "=> Arquivo ordenado com sucesso!" << std::endl;
+}
+
+
+// --- IMPLEMENTAÇÃO DAS FUNÇÕES AUXILIARES E ALGORITMOS ---
+
+void parseCSVLineManual(char* linha, char campos[6][200]) {
+    int campoAtual = 0;
+    int charAtual = 0;
+    bool dentroDeAspas = false;
+    int i = 0;
+
+    while (linha[i] != '\0' && campoAtual < 6) {
+        if (linha[i] == '"') {
+            dentroDeAspas = !dentroDeAspas;
+        } else if (linha[i] == ',' && !dentroDeAspas) {
+            campos[campoAtual][charAtual] = '\0'; // Finaliza campo atual
+            campoAtual++;
+            charAtual = 0;
+        } else {
+            campos[campoAtual][charAtual] = linha[i];
+            charAtual++;
+        }
+        i++; // Incrementa o contador de caracteres da linha
+    }
+    campos[campoAtual][charAtual] = '\0'; // Finaliza o último campo
+}
+
+// --- Quicksort ---
 void trocar(Registro* a, Registro* b) {
     Registro temp = *a;
     *a = *b;
@@ -149,8 +469,7 @@ void quicksort(Registro arr[], int baixo, int alto) {
     }
 }
 
-// --- IMPLEMENTAÇÃO DO MIN-HEAP ---
-
+// --- Min-Heap ---
 MinHeap* criarMinHeap(int capacidade) {
     MinHeap* minHeap = (MinHeap*) malloc(sizeof(MinHeap));
     minHeap->capacidade = capacidade;
@@ -186,7 +505,7 @@ void minHeapify(MinHeap* minHeap, int idx) {
 HeapItem extrairMin(MinHeap* minHeap) {
     if (minHeap->tamanho <= 0) {
         HeapItem itemVazio;
-        itemVazio.registro.id = -1;
+        itemVazio.registro.id = -1; // Sinaliza erro/vazio
         return itemVazio;
     }
     if (minHeap->tamanho == 1) {
@@ -204,7 +523,7 @@ HeapItem extrairMin(MinHeap* minHeap) {
 
 void inserirMinHeap(MinHeap* minHeap, HeapItem item) {
     if (minHeap->tamanho == minHeap->capacidade) {
-        cout << "Erro: Heap cheio." << endl;
+        std::cout << "Erro: Heap cheio." << std::endl;
         return;
     }
 
@@ -218,309 +537,4 @@ void inserirMinHeap(MinHeap* minHeap, HeapItem item) {
        minHeap->harr[i] = temp;
        i = (i - 1) / 2;
     }
-}
-
-
-// --- PARSER DE CSV E CONVERSÃO ---
-
-void parseCSVLineManual(char* linha, char campos[6][200]) {
-    int campoAtual = 0;
-    int charAtual = 0;
-    bool dentroDeAspas = false;
-
-    for (int i = 0; linha[i] != '\0'; i++) {
-        if (linha[i] == '"') {
-            dentroDeAspas = !dentroDeAspas;
-        } else if (linha[i] == ',' && !dentroDeAspas) {
-            campos[campoAtual][charAtual] = '\0';
-            campoAtual++;
-            charAtual = 0;
-            if (campoAtual >= 6) break;
-        } else {
-            campos[campoAtual][charAtual] = linha[i];
-            charAtual++;
-        }
-    }
-    campos[campoAtual][charAtual] = '\0';
-}
-
-void converterCSVparaBinario(const char* csvPath, const char* binPath) {
-    FILE* csv = fopen(csvPath, "r");
-    if (!csv) {
-        cerr << "Erro: Nao foi possivel abrir o arquivo CSV '" << csvPath << "'" << endl;
-        return;
-    }
-
-    ofstream bin(binPath, ios::binary);
-    if (!bin.is_open()) {
-        cerr << "Erro: Nao foi possivel criar o arquivo binario '" << binPath << "'" << endl;
-        fclose(csv);
-        return;
-    }
-
-    char linha[1024];
-    fgets(linha, sizeof(linha), csv); // Ignora cabeçalho
-
-    while (fgets(linha, sizeof(linha), csv)) {
-        linha[strcspn(linha, "\r\n")] = 0;
-
-        char campos[6][200] = {0};
-        parseCSVLineManual(linha, campos);
-        
-        Registro reg;
-        if(strlen(campos[0]) > 0) reg.id = atoi(campos[0]); else reg.id = 0;
-        strncpy(reg.name, campos[1], sizeof(reg.name) - 1);
-        strncpy(reg.team, campos[2], sizeof(reg.team) - 1);
-        strncpy(reg.games, campos[3], sizeof(reg.games) - 1);
-        if(strlen(campos[4]) > 0) reg.year = atoi(campos[4]); else reg.year = 0;
-        strncpy(reg.season, campos[5], sizeof(reg.season) - 1);
-        
-        bin.write(reinterpret_cast<const char*>(&reg), sizeof(Registro));
-    }
-
-    fclose(csv);
-    bin.close();
-    cout << "=> Conversao concluida com sucesso!" << endl;
-}
-
-
-// --- FUNÇÕES DE OPERAÇÃO NO ARQUIVO BINÁRIO ---
-
-void lerRegistro(fstream& arquivo, Registro& reg, long pos) {
-    arquivo.seekg(pos * sizeof(Registro));
-    arquivo.read(reinterpret_cast<char*>(&reg), sizeof(Registro));
-}
-
-void escreverRegistro(fstream& arquivo, const Registro& reg, long pos) {
-    arquivo.seekp(pos * sizeof(Registro));
-    arquivo.write(reinterpret_cast<const char*>(&reg), sizeof(Registro));
-}
-
-int contarRegistros(const char* binPath) {
-    ifstream arquivo(binPath, ios::binary | ios::ate);
-    if (!arquivo.is_open()) return 0;
-    return arquivo.tellg() / sizeof(Registro);
-}
-
-void imprimirTodos(const char* binPath) {
-    fstream bin(binPath, ios::binary | ios::in);
-    if (!bin.is_open()) {
-        cerr << "Erro ao abrir arquivo binario!" << endl;
-        return;
-    }
-    int total = contarRegistros(binPath);
-    if (total == 0) {
-        cout << "Arquivo vazio." << endl;
-        return;
-    }
-    
-    cout << "\n--- Imprimindo todos os registros ---\n";
-    for (int i = 0; i < total; i++) {
-        Registro reg;
-        lerRegistro(bin, reg, i);
-        cout << "[" << i << "] ID: " << reg.id 
-             << ", Nome: " << reg.name
-             << ", Equipe: " << reg.team
-             << ", Jogos: " << reg.games
-             << ", Ano: " << reg.year
-             << ", Temporada: " << reg.season << endl;
-    }
-}
-
-void inserirRegistro(const char* binPath) {
-    fstream bin(binPath, ios::binary | ios::in | ios::out);
-    if (!bin.is_open()) {
-        cerr << "Erro ao abrir arquivo binario para insercao!" << endl;
-        return;
-    }
-
-    Registro novo;
-    int pos;
-    cout << "Digite os dados do novo registro:\n";
-    cout << "ID: "; cin >> novo.id;
-    cout << "Nome: "; cin.ignore(numeric_limits<streamsize>::max(), '\n'); cin.getline(novo.name, sizeof(novo.name));
-    cout << "Equipe: "; cin.getline(novo.team, sizeof(novo.team));
-    cout << "Jogos: "; cin.getline(novo.games, sizeof(novo.games));
-    cout << "Ano: "; cin >> novo.year;
-    cout << "Temporada: "; cin.ignore(numeric_limits<streamsize>::max(), '\n'); cin.getline(novo.season, sizeof(novo.season));
-    cout << "Posicao para inserir: "; cin >> pos;
-    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Limpa buffer para o próximo menu
-
-    int totalRegistros = contarRegistros(binPath);
-    if (pos < 0) pos = 0;
-
-    if (pos >= totalRegistros) {
-        escreverRegistro(bin, novo, totalRegistros);
-        cout << "Registro inserido no final do arquivo (posicao " << totalRegistros << ")." << endl;
-    } else {
-        Registro temp;
-        for (int i = totalRegistros - 1; i >= pos; i--) {
-            lerRegistro(bin, temp, i);
-            escreverRegistro(bin, temp, i + 1);
-        }
-        escreverRegistro(bin, novo, pos);
-        cout << "Registro inserido na posicao " << pos << "." << endl;
-    }
-}
-
-void visualizarRegistros(const char* binPath) {
-    int inicio, fim;
-    cout << "Posicao inicial: "; cin >> inicio;
-    cout << "Posicao final: "; cin >> fim;
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
-    fstream bin(binPath, ios::binary | ios::in);
-    if (!bin.is_open()) {
-        cerr << "Erro ao abrir arquivo binario!" << endl;
-        return;
-    }
-
-    int total = contarRegistros(binPath);
-    if (inicio < 0 || fim < inicio || inicio >= total) {
-        cout << "Intervalo invalido." << endl;
-        return;
-    }
-    if (fim >= total) fim = total -1;
-
-    cout << "\n--- Exibindo Registros de " << inicio << " a " << fim << " ---\n";
-    for (int i = inicio; i <= fim; i++) {
-        Registro reg;
-        lerRegistro(bin, reg, i);
-        cout << "[" << i << "] ID: " << reg.id 
-             << ", Nome: " << reg.name
-             << ", Ano: " << reg.year << endl;
-    }
-}
-
-void alterarRegistro(const char* binPath) {
-    fstream bin(binPath, ios::binary | ios::in | ios::out);
-    if (!bin.is_open()) {
-        cerr << "Erro ao abrir arquivo binario!" << endl;
-        return;
-    }
-
-    int pos;
-    cout << "Posicao do registro a ser alterado: "; cin >> pos;
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    
-    int total = contarRegistros(binPath);
-    if (pos < 0 || pos >= total) {
-        cout << "Posicao invalida." << endl;
-        return;
-    }
-
-    Registro reg;
-    cout << "Digite os novos dados:\n";
-    cout << "ID: "; cin >> reg.id;
-    cout << "Nome: "; cin.ignore(numeric_limits<streamsize>::max(), '\n'); cin.getline(reg.name, sizeof(reg.name));
-    cout << "Equipe: "; cin.getline(reg.team, sizeof(reg.team));
-    cout << "Jogos: "; cin.getline(reg.games, sizeof(reg.games));
-    cout << "Ano: "; cin >> reg.year;
-    cout << "Temporada: "; cin.ignore(numeric_limits<streamsize>::max(), '\n'); cin.getline(reg.season, sizeof(reg.season));
-
-    escreverRegistro(bin, reg, pos);
-    cout << "Registro na posicao " << pos << " alterado." << endl;
-}
-
-void trocarRegistros(const char* binPath) {
-    fstream bin(binPath, ios::binary | ios::in | ios::out);
-    if (!bin.is_open()) {
-        cerr << "Erro ao abrir arquivo binario!" << endl;
-        return;
-    }
-
-    int pos1, pos2;
-    cout << "Primeira posicao: "; cin >> pos1;
-    cout << "Segunda posicao: "; cin >> pos2;
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    
-    int total = contarRegistros(binPath);
-    if (pos1 < 0 || pos1 >= total || pos2 < 0 || pos2 >= total) {
-        cout << "Uma ou ambas as posicoes sao invalidas." << endl;
-        return;
-    }
-
-    Registro reg1, reg2;
-    lerRegistro(bin, reg1, pos1);
-    lerRegistro(bin, reg2, pos2);
-    
-    escreverRegistro(bin, reg1, pos2);
-    escreverRegistro(bin, reg2, pos1);
-
-    cout << "Registros das posicoes " << pos1 << " e " << pos2 << " trocados." << endl;
-}
-
-// --- IMPLEMENTAÇÃO DA ORDENAÇÃO EXTERNA ---
-
-void mergeSortExterno(const char* binPath) {
-    int totalRegistros = contarRegistros(binPath);
-    if (totalRegistros <= 1) {
-        cout << "Arquivo ja esta ordenado ou vazio." << endl;
-        return;
-    }
-
-    const int TAM_BLOCO = 5000;
-    int numBlocos = (totalRegistros + TAM_BLOCO - 1) / TAM_BLOCO;
-
-    cout << "Iniciando Fase 1: Criacao de " << numBlocos << " blocos ordenados..." << endl;
-    Registro* bloco = new Registro[TAM_BLOCO];
-    ifstream entrada(binPath, ios::binary);
-    
-    for (int i = 0; i < numBlocos; i++) {
-        int registrosNesteBloco = min(TAM_BLOCO, totalRegistros - i * TAM_BLOCO);
-        entrada.read(reinterpret_cast<char*>(bloco), registrosNesteBloco * sizeof(Registro));
-
-        quicksort(bloco, 0, registrosNesteBloco - 1);
-        
-        char nomeArquivoBloco[20];
-        sprintf(nomeArquivoBloco, "bloco_%d.bin", i);
-        ofstream saida(nomeArquivoBloco, ios::binary);
-        saida.write(reinterpret_cast<const char*>(bloco), registrosNesteBloco * sizeof(Registro));
-    }
-    delete[] bloco;
-    entrada.close();
-
-    cout << "Iniciando Fase 2: Intercalacao dos blocos..." << endl;
-    ifstream* entradasBlocos = new ifstream[numBlocos];
-    for (int i = 0; i < numBlocos; i++) {
-        char nomeArquivoBloco[20];
-        sprintf(nomeArquivoBloco, "bloco_%d.bin", i);
-        entradasBlocos[i].open(nomeArquivoBloco, ios::binary);
-    }
-    
-    ofstream saidaFinal("ordenado_final.bin", ios::binary);
-    MinHeap* heap = criarMinHeap(numBlocos);
-    
-    for (int i = 0; i < numBlocos; i++) {
-        HeapItem item;
-        if (entradasBlocos[i].read(reinterpret_cast<char*>(&item.registro), sizeof(Registro))) {
-            item.origem = i;
-            inserirMinHeap(heap, item);
-        }
-    }
-
-    while (heap->tamanho > 0) {
-        HeapItem minItem = extrairMin(heap);
-        saidaFinal.write(reinterpret_cast<const char*>(&minItem.registro), sizeof(Registro));
-
-        HeapItem proximoItem;
-        if (entradasBlocos[minItem.origem].read(reinterpret_cast<char*>(&proximoItem.registro), sizeof(Registro))) {
-            proximoItem.origem = minItem.origem;
-            inserirMinHeap(heap, proximoItem);
-        }
-    }
-
-    destruirMinHeap(heap);
-    for (int i = 0; i < numBlocos; i++) {
-        entradasBlocos[i].close();
-        char nomeArquivoBloco[20];
-        sprintf(nomeArquivoBloco, "bloco_%d.bin", i);
-        remove(nomeArquivoBloco);
-    }
-    delete[] entradasBlocos;
-    saidaFinal.close();
-
-    remove(binPath);
-    rename("ordenado_final.bin", binPath);
-    cout << "=> Arquivo ordenado com sucesso!!" << endl;
 }
