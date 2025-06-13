@@ -522,5 +522,5 @@ void mergeSortExterno(const char* binPath) {
 
     remove(binPath);
     rename("ordenado_final.bin", binPath);
-    cout << "=> Arquivo ordenado com sucesso!" << endl;
+    cout << "=> Arquivo ordenado com sucesso!!" << endl;
 }
