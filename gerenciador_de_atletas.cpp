@@ -87,9 +87,9 @@ void GerenciadorDeAtletas::imprimirTodos() {
         Registro reg;
         lerRegistro(bin, reg, i);
         std::cout << "[" << i << "] ID: " << reg.id 
-             << ", Nome: " << reg.name
-             << ", Equipe: " << reg.team
-             << ", Ano: " << reg.year << std::endl;
+                  << ", Nome: " << reg.name
+                  << ", Equipe: " << reg.team
+                  << ", Ano: " << reg.year << std::endl;
     }
     bin.close();
 }
@@ -155,8 +155,8 @@ void GerenciadorDeAtletas::visualizarRegistros() {
         Registro reg;
         lerRegistro(bin, reg, i);
         std::cout << "[" << i << "] ID: " << reg.id 
-             << ", Nome: " << reg.name
-             << ", Ano: " << reg.year << std::endl;
+                  << ", Nome: " << reg.name
+                  << ", Ano: " << reg.year << std::endl;
     }
     bin.close();
 }
@@ -239,7 +239,7 @@ void GerenciadorDeAtletas::mergeSortExterno() {
         int registrosNesteBloco = std::min(TAM_BLOCO, totalRegistros - i * TAM_BLOCO);
         entrada.read(reinterpret_cast<char*>(bloco), registrosNesteBloco * sizeof(Registro));
 
-        quicksort(bloco, 0, registrosNesteBloco - 1);
+        mergesort(bloco, 0, registrosNesteBloco - 1);
         
         char nomeArquivoBloco[20];
         sprintf(nomeArquivoBloco, "bloco_%d.bin", i);

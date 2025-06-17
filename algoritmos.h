@@ -7,10 +7,9 @@
 void parseCSVLineManual(char* linha, char campos[6][200]);
 
 // Algoritmos implementados manualmente
-// 1. Quicksort
-void trocar(Registro* a, Registro* b);
-int particionar(Registro arr[], int baixo, int alto);
-void quicksort(Registro arr[], int baixo, int alto);
+// 1. Mergesort
+void merge(Registro arr[], int esq, int meio, int dir);
+void mergesort(Registro arr[], int esq, int dir);
 
 // 2. Min-Heap
 MinHeap* criarMinHeap(int capacidade);

@@ -29,32 +29,67 @@ void parseCSVLineManual(char* linha, char campos[6][200]) {
     campos[campoAtual][charAtual] = '\0'; // Finaliza o último campo
 }
 
-// --- Quicksort ---
-void trocar(Registro* a, Registro* b) {
-    Registro temp = *a;
-    *a = *b;
-    *b = temp;
-}
+// --- Mergesort ---
+void merge(Registro arr[], int esq, int meio, int dir) {
+    int i, j, k;
+    int n1 = meio - esq + 1;
+    int n2 = dir - meio;
 
-int particionar(Registro arr[], int baixo, int alto) {
-    int pivo = arr[alto].id;
-    int i = (baixo - 1);
+    // Cria arrays temporários
+    Registro* L = new Registro[n1];
+    Registro* R = new Registro[n2];
 
-    for (int j = baixo; j <= alto - 1; j++) {
-        if (arr[j].id < pivo) {
+    // Copia dados para os arrays temporários L[] e R[]
+    for (i = 0; i < n1; i++)
+        L[i] = arr[esq + i];
+    for (j = 0; j < n2; j++)
+        R[j] = arr[meio + 1 + j];
+
+    // Intercala os arrays temporários de volta em arr[esq..dir]
+    i = 0; // Índice inicial do primeiro subarray
+    j = 0; // Índice inicial do segundo subarray
+    k = esq; // Índice inicial do subarray intercalado
+    while (i < n1 && j < n2) {
+        if (L[i].id <= R[j].id) {
+            arr[k] = L[i];
             i++;
-            trocar(&arr[i], &arr[j]);
+        } else {
+            arr[k] = R[j];
+            j++;
         }
+        k++;
     }
-    trocar(&arr[i + 1], &arr[alto]);
-    return (i + 1);
+
+    // Copia os elementos restantes de L[], se houver algum
+    while (i < n1) {
+        arr[k] = L[i];
+        i++;
+        k++;
+    }
+
+    // Copia os elementos restantes de R[], se houver algum
+    while (j < n2) {
+        arr[k] = R[j];
+        j++;
+        k++;
+    }
+    
+    // Libera a memória dos arrays temporários
+    delete[] L;
+    delete[] R;
 }
 
-void quicksort(Registro arr[], int baixo, int alto) {
-    if (baixo < alto) {
-        int pi = particionar(arr, baixo, alto);
-        quicksort(arr, baixo, pi - 1);
-        quicksort(arr, pi + 1, alto);
+void mergesort(Registro arr[], int esq, int dir) {
+    if (esq < dir) {
+        // Encontra o ponto do meio para evitar overflow
+        int meio = esq + (dir - esq) / 2;
+
+        // Ordena a primeira e a segunda metade
+        mergesort(arr, esq, meio);
+        mergesort(arr, meio + 1, dir);
+
+        // Intercala as metades ordenadas
+        merge(arr, esq, meio, dir);
     }
 }
 
