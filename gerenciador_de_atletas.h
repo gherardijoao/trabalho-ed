@@ -1,10 +1,28 @@
+/*
+ * Projeto Prático: Tratamento de Arquivos e Ordenação em Memória Secundária
+ * Equipe:
+ * - JONATHAN MARTINS CABRAL
+ * - THALES MAIA MENDONÇA NEGRÃO
+ * - JOÃO AMANCIO GHERARDI
+ *
+ * Data: 18 de Junho de 2025
+ *
+ * Descrição: Este arquivo de cabeçalho (`.h`) define as estruturas de dados
+ * principais utilizadas no projeto, como `Registro` (para cada atleta),
+ * `HeapItem` (para auxiliar no Min-Heap durante a ordenação), e a
+ * declaração da classe `GerenciadorDeAtletas`. A classe `GerenciadorDeAtletas`
+ * é responsável por encapsular as operações de manipulação do arquivo binário,
+ * como leitura, escrita, inserção, visualização, alteração e troca de registros.
+ */
+
+
 #ifndef GERENCIADOR_DE_ATLETAS_H
 #define GERENCIADOR_DE_ATLETAS_H
 
 #include <string>
 #include <fstream>
 
-// --- ESTRUTURAS DE DADOS ---
+// Estruturas de dados
 
 // Estrutura que representa cada registro de atleta.
 struct Registro {
@@ -37,7 +55,7 @@ struct MinHeap {
 };
 
 
-// --- CLASSE PRINCIPAL PARA GERENCIAMENTO DO ARQUIVO ---
+// Classe principal para gereniamento do arquivo
 
 class GerenciadorDeAtletas {
 private:
@@ -63,4 +81,4 @@ public:
     void verificarOrdenacao(); // Função para validar se o arquivo está ordenado
 };
 
-#endif // GERENCIADOR_DE_ATLETAS_H
+#endif 

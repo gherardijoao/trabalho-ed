@@ -8,7 +8,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -g
 
 # Nome do programa executável final
-TARGET = meu_programa
+TARGET = projeto_ED
 
 # Lista dos arquivos fonte (.cpp)
 SOURCES = main.cpp gerenciador_de_atletas.cpp algoritmos.cpp
